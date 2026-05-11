@@ -16,8 +16,9 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 
-# 强制 UTF-8 输出
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+# 强制 UTF-8 输出 (幂等,避免被多次调用导致 stream 关闭)
+if hasattr(sys.stdout, 'buffer') and getattr(sys.stdout, 'encoding', '').lower() != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 
 # 关掉系统代理
 for k in ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']:
