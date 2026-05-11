@@ -29,6 +29,37 @@ PAPER_DIR.mkdir(parents=True, exist_ok=True)
 (PAPER_DIR / 'snapshots').mkdir(exist_ok=True)
 INITIAL_CAPITAL = 1_000_000  # 100 万纸面初始资金
 
+# ============== 摩擦成本模型 (A 股 2025) ==============
+COSTS = {
+    'slippage':   0.001,    # 0.10% 单边滑点 (大盘股保守估计)
+    'commission': 0.00025,  # 0.025% 券商佣金 (万 2.5)
+    'transfer':   0.00001,  # 0.001% 过户费
+    'stamp':      0.0005,   # 0.05% 印花税 (仅卖方)
+    'min_commission': 5.0,  # 单笔最低佣金 5 元
+}
+
+
+def apply_buy_cost(close, shares):
+    """买入: 滑点拉高价 + 佣金过户费.
+    返回 (实际成交价, 总现金支出, 费用明细)."""
+    fill_px = close * (1 + COSTS['slippage'])
+    gross = fill_px * shares
+    fee_pct = COSTS['commission'] + COSTS['transfer']
+    fee = max(gross * fee_pct, COSTS['min_commission'])
+    cash_out = gross + fee
+    return fill_px, cash_out, fee
+
+
+def apply_sell_cost(close, shares):
+    """卖出: 滑点压低价 + 佣金过户费 + 印花税.
+    返回 (实际成交价, 净到手现金, 费用明细)."""
+    fill_px = close * (1 - COSTS['slippage'])
+    gross = fill_px * shares
+    fee_pct = COSTS['commission'] + COSTS['transfer'] + COSTS['stamp']
+    fee = max(gross * fee_pct, COSTS['min_commission'])
+    cash_in = gross - fee
+    return fill_px, cash_in, fee
+
 
 def load_state():
     """读当前状态: positions, nav_history, trades."""
@@ -94,7 +125,8 @@ def cmd_init(rebal_date='2025-12-31'):
         'holdings': []
     }
 
-    # 建仓: 每只股票按 close 价买入
+    # 建仓: 每只股票按 close 价买入 (含摩擦成本)
+    total_fees = 0.0
     for ticker, row in sel.iterrows():
         try:
             kl = get_stock_kline(ticker, '2025-12-01', '2025-12-31')
@@ -103,26 +135,32 @@ def cmd_init(rebal_date='2025-12-31'):
         except Exception as ex:
             print(f'  [WARN] {ticker} 无价格: {ex}'); continue
         capital_per_stock = INITIAL_CAPITAL * weight_each
-        shares = int(capital_per_stock / close_at_buy / 100) * 100  # A股按手 100 股
+        # 用预估 fill_px (close * 1.001) 算可买股数, 留点 buffer 防超支
+        est_fill = close_at_buy * (1 + COSTS['slippage'])
+        shares = int(capital_per_stock / est_fill / 100) * 100  # A股按手 100 股
         if shares == 0: shares = 100  # 至少买 1 手
+        fill_px, cash_out, fee = apply_buy_cost(close_at_buy, shares)
+        total_fees += fee
         positions['holdings'].append({
             'ticker': ticker,
             'name': row.get('name', ''),
             'industry': row.get('industry', ''),
             'shares': shares,
-            'cost_price': round(close_at_buy, 2),
-            'cost_value': round(shares * close_at_buy, 2),
+            'cost_price': round(fill_px, 4),       # 已含滑点
+            'cost_value': round(cash_out, 2),       # 已含费用
             'weight_target': round(weight_each, 4),
             'score': round(float(row['score']), 4),
         })
         append_trade_log(rebal_date.date(), 'BUY', ticker, row.get('name',''),
-                          weight_each, close_at_buy, float(row['score']), 'initial position')
+                          weight_each, fill_px, float(row['score']),
+                          f'initial; fee={fee:.2f}')
 
     save_positions(positions)
     actual_invested = sum(h['cost_value'] for h in positions['holdings'])
     print(f'\n[init] 持仓创建完成')
     print(f'  目标资金: RMB {INITIAL_CAPITAL:,}')
-    print(f'  实际买入: RMB {actual_invested:,.0f} ({actual_invested/INITIAL_CAPITAL*100:.1f}%)')
+    print(f'  实际现金支出: RMB {actual_invested:,.0f} ({actual_invested/INITIAL_CAPITAL*100:.1f}%)')
+    print(f'  其中买入费用: RMB {total_fees:,.0f} ({total_fees/INITIAL_CAPITAL*10000:.1f} bp)')
     print(f'  现金余额: RMB {INITIAL_CAPITAL - actual_invested:,.0f}')
 
     # 初始化 NAV
@@ -198,19 +236,21 @@ def cmd_rebalance(rebal_date):
     print(f'  保留: {len(keep)} 只 | 卖出: {len(to_sell)} 只 | 买入: {len(to_buy)} 只')
     print(f'  换手率: {len(to_sell)/len(cur_tickers)*100:.1f}%')
 
-    # 1. 卖出 (拿当日 close)
+    # 1. 卖出 (含滑点 + 印花税 + 佣金)
     cash_freed = 0.0
+    total_sell_fees = 0.0
     for ticker in to_sell:
         h = cur_holdings[ticker]
-        px = _get_close_at(ticker, rebal_date)
-        if px is None:
-            print(f'  [WARN] {ticker} 卖出取价失败, 用成本价'); px = h['cost_price']
-        proceeds = h['shares'] * px
-        cash_freed += proceeds
-        pnl = proceeds - h['cost_value']
+        close = _get_close_at(ticker, rebal_date)
+        if close is None:
+            print(f'  [WARN] {ticker} 卖出取价失败, 用成本价'); close = h['cost_price']
+        fill_px, cash_in, fee = apply_sell_cost(close, h['shares'])
+        cash_freed += cash_in
+        total_sell_fees += fee
+        pnl = cash_in - h['cost_value']
         append_trade_log(rebal_date.date(), 'SELL', ticker, h.get('name',''),
-                         0, px, np.nan, f"PnL={pnl:+.0f}")
-        print(f'  SELL {ticker} {h.get("name","")}: {h["shares"]} @ {px:.2f} = {proceeds:,.0f} (PnL {pnl:+,.0f})')
+                         0, fill_px, np.nan, f'PnL={pnl:+.0f};fee={fee:.0f}')
+        print(f'  SELL {ticker} {h.get("name","")}: {h["shares"]} @ {fill_px:.2f} = {cash_in:,.0f} (fee {fee:.0f}; PnL {pnl:+,.0f})')
 
     # 计算可用现金 (上次现金 + 卖出回笼)
     last_nav = nav.iloc[-1] if nav is not None and len(nav) > 0 else None
@@ -224,31 +264,37 @@ def cmd_rebalance(rebal_date):
             h['score'] = round(float(sel.loc[ticker, 'score']), 4)
         new_holdings.append(h)
 
-    # 3. 买入新股票: 剩余资金均分给 to_buy
+    # 3. 买入新股票: 剩余资金均分给 to_buy (含滑点 + 佣金)
+    total_buy_fees = 0.0
     if len(to_buy) > 0:
         capital_per_new = cash_available / len(to_buy)
         for ticker in to_buy:
             row = sel.loc[ticker]
-            px = _get_close_at(ticker, rebal_date)
-            if px is None or px <= 0:
+            close = _get_close_at(ticker, rebal_date)
+            if close is None or close <= 0:
                 print(f'  [WARN] {ticker} 买入取价失败, 跳过'); continue
-            shares = int(capital_per_new / px / 100) * 100
+            est_fill = close * (1 + COSTS['slippage'])
+            shares = int(capital_per_new / est_fill / 100) * 100
             if shares == 0:
-                print(f'  [WARN] {ticker} 资金不足 1 手 ({px:.2f}), 跳过'); continue
-            cost_v = shares * px
+                print(f'  [WARN] {ticker} 资金不足 1 手 ({close:.2f}), 跳过'); continue
+            fill_px, cash_out, fee = apply_buy_cost(close, shares)
+            total_buy_fees += fee
             new_holdings.append({
                 'ticker': ticker,
                 'name': row.get('name', ''),
                 'industry': row.get('industry', ''),
                 'shares': shares,
-                'cost_price': round(px, 2),
-                'cost_value': round(cost_v, 2),
+                'cost_price': round(fill_px, 4),
+                'cost_value': round(cash_out, 2),
                 'weight_target': round(1.0/len(sel), 4),
                 'score': round(float(row['score']), 4),
             })
             append_trade_log(rebal_date.date(), 'BUY', ticker, row.get('name',''),
-                             1.0/len(sel), px, float(row['score']), 'rebalance')
-            print(f'  BUY  {ticker} {row.get("name","")}: {shares} @ {px:.2f} = {cost_v:,.0f}')
+                             1.0/len(sel), fill_px, float(row['score']),
+                             f'rebalance; fee={fee:.0f}')
+            print(f'  BUY  {ticker} {row.get("name","")}: {shares} @ {fill_px:.2f} = {cash_out:,.0f} (fee {fee:.0f})')
+
+    print(f'\n[rebalance] 摩擦成本: 卖费 {total_sell_fees:.0f} + 买费 {total_buy_fees:.0f} = {total_sell_fees+total_buy_fees:.0f} ({(total_sell_fees+total_buy_fees)/INITIAL_CAPITAL*10000:.1f} bp)')
 
     positions['holdings'] = new_holdings
     positions['last_rebalance'] = str(rebal_date.date())
