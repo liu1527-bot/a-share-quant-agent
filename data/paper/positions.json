@@ -1,188 +1,28 @@
 {
   "inception_date": "2025-12-31",
-  "last_rebalance": "2025-12-31",
+  "last_rebalance": "2026-04-30",
   "initial_capital": 1000000,
   "top_n": 30,
   "holdings": [
     {
-      "ticker": "601225",
-      "name": "陕西煤业",
-      "industry": "煤炭",
-      "shares": 1500,
-      "cost_price": 21.3413,
-      "cost_value": 32020.3,
-      "weight_target": 0.0333,
-      "score": 0.6105
-    },
-    {
-      "ticker": "601800",
-      "name": "中国交建",
-      "industry": "建筑",
-      "shares": 4100,
-      "cost_price": 8.1281,
-      "cost_value": 33333.96,
-      "weight_target": 0.0333,
-      "score": 0.8241
-    },
-    {
-      "ticker": "600050",
-      "name": "中国联通",
-      "industry": "通信",
-      "shares": 6500,
-      "cost_price": 5.1151,
-      "cost_value": 33256.86,
-      "weight_target": 0.0333,
-      "score": 0.6626
-    },
-    {
-      "ticker": "000166",
-      "name": "申万宏源",
-      "industry": "非银金融",
-      "shares": 6300,
-      "cost_price": 5.2753,
-      "cost_value": 33242.84,
-      "weight_target": 0.0333,
-      "score": 0.6465
-    },
-    {
-      "ticker": "600018",
-      "name": "上港集团",
-      "industry": "交运",
-      "shares": 6200,
-      "cost_price": 5.3754,
-      "cost_value": 33335.96,
-      "weight_target": 0.0333,
-      "score": 0.7907
-    },
-    {
-      "ticker": "600023",
-      "name": "浙能电力",
+      "ticker": "600027",
+      "name": "华电国际",
       "industry": "电力",
       "shares": 6700,
-      "cost_price": 4.9549,
-      "cost_value": 33206.8,
+      "cost_price": 4.965,
+      "cost_value": 33273.88,
       "weight_target": 0.0333,
-      "score": 0.7907
+      "score": 0.6367
     },
     {
-      "ticker": "601006",
-      "name": "大秦铁路",
-      "industry": "交运",
-      "shares": 6400,
-      "cost_price": 5.1652,
-      "cost_value": 33065.62,
-      "weight_target": 0.0333,
-      "score": 0.7503
-    },
-    {
-      "ticker": "000001",
-      "name": "深发展A",
-      "industry": "银行",
-      "shares": 2900,
-      "cost_price": 11.4214,
-      "cost_value": 33130.7,
-      "weight_target": 0.0333,
-      "score": 0.8243
-    },
-    {
-      "ticker": "000983",
-      "name": "山西焦煤",
-      "industry": "煤炭",
-      "shares": 5100,
-      "cost_price": 6.4264,
-      "cost_value": 32783.26,
-      "weight_target": 0.0333,
-      "score": 0.6177
-    },
-    {
-      "ticker": "001979",
-      "name": "招商蛇口",
-      "industry": "地产",
-      "shares": 3800,
-      "cost_price": 8.6486,
-      "cost_value": 32873.38,
-      "weight_target": 0.0333,
-      "score": 0.6492
-    },
-    {
-      "ticker": "601919",
-      "name": "中国远洋",
-      "industry": "交运",
-      "shares": 2100,
-      "cost_price": 15.1952,
-      "cost_value": 31918.17,
-      "weight_target": 0.0333,
-      "score": 0.757
-    },
-    {
-      "ticker": "600690",
-      "name": "青岛海尔",
-      "industry": "家电",
-      "shares": 1200,
-      "cost_price": 26.1161,
-      "cost_value": 31347.46,
-      "weight_target": 0.0333,
-      "score": 0.6794
-    },
-    {
-      "ticker": "600999",
-      "name": "招商证券",
-      "industry": "非银金融",
-      "shares": 2000,
-      "cost_price": 16.6566,
-      "cost_value": 33321.94,
-      "weight_target": 0.0333,
-      "score": 0.6561
-    },
-    {
-      "ticker": "000651",
-      "name": "格力电器",
-      "industry": "家电",
-      "shares": 800,
-      "cost_price": 39.2592,
-      "cost_value": 31415.54,
-      "weight_target": 0.0333,
-      "score": 0.6891
-    },
-    {
-      "ticker": "002252",
-      "name": "上海莱士",
-      "industry": "医药",
-      "shares": 5200,
-      "cost_price": 6.3263,
-      "cost_value": 32905.42,
-      "weight_target": 0.0333,
-      "score": 0.6103
-    },
-    {
-      "ticker": "601319",
-      "name": "中国人保",
+      "ticker": "601318",
+      "name": "中国平安",
       "industry": "保险",
-      "shares": 3700,
-      "cost_price": 8.9589,
-      "cost_value": 33156.73,
+      "shares": 500,
+      "cost_price": 63.1531,
+      "cost_value": 31584.75,
       "weight_target": 0.0333,
-      "score": 0.6665
-    },
-    {
-      "ticker": "002142",
-      "name": "宁波银行",
-      "industry": "银行",
-      "shares": 1100,
-      "cost_price": 28.1181,
-      "cost_value": 30937.94,
-      "weight_target": 0.0333,
-      "score": 0.7842
-    },
-    {
-      "ticker": "601668",
-      "name": "中国建筑",
-      "industry": "建筑",
-      "shares": 6400,
-      "cost_price": 5.1351,
-      "cost_value": 32873.38,
-      "weight_target": 0.0333,
-      "score": 0.822
+      "score": 0.6159
     },
     {
       "ticker": "601186",
@@ -192,57 +32,37 @@
       "cost_price": 7.6777,
       "cost_value": 33022.56,
       "weight_target": 0.0333,
-      "score": 0.8862
+      "score": 0.8377
     },
     {
-      "ticker": "601211",
-      "name": "国泰君安",
-      "industry": "非银金融",
-      "shares": 1600,
-      "cost_price": 20.5705,
-      "cost_value": 32921.44,
+      "ticker": "601919",
+      "name": "中国远洋",
+      "industry": "交运",
+      "shares": 2100,
+      "cost_price": 15.1952,
+      "cost_value": 31918.17,
       "weight_target": 0.0333,
-      "score": 0.6828
+      "score": 0.7475
     },
     {
-      "ticker": "600027",
-      "name": "华电国际",
+      "ticker": "600023",
+      "name": "浙能电力",
       "industry": "电力",
       "shares": 6700,
-      "cost_price": 4.965,
-      "cost_value": 33273.88,
+      "cost_price": 4.9549,
+      "cost_value": 33206.8,
       "weight_target": 0.0333,
-      "score": 0.7534
+      "score": 0.78
     },
     {
-      "ticker": "601898",
-      "name": "中煤能源",
-      "industry": "煤炭",
-      "shares": 2600,
-      "cost_price": 12.4524,
-      "cost_value": 32384.76,
+      "ticker": "601728",
+      "name": "中国电信",
+      "industry": "通信",
+      "shares": 6200,
+      "cost_price": 5.6757,
+      "cost_value": 35198.3,
       "weight_target": 0.0333,
-      "score": 0.7352
-    },
-    {
-      "ticker": "601318",
-      "name": "中国平安",
-      "industry": "保险",
-      "shares": 400,
-      "cost_price": 68.4684,
-      "cost_value": 27394.48,
-      "weight_target": 0.0333,
-      "score": 0.6894
-    },
-    {
-      "ticker": "600011",
-      "name": "华能国际",
-      "industry": "电力",
-      "shares": 4400,
-      "cost_price": 7.4675,
-      "cost_value": 32865.37,
-      "weight_target": 0.0333,
-      "score": 0.6863
+      "score": 0.5805
     },
     {
       "ticker": "000002",
@@ -252,47 +72,17 @@
       "cost_price": 4.6547,
       "cost_value": 33056.61,
       "weight_target": 0.0333,
-      "score": 0.7257
+      "score": 0.6227
     },
     {
-      "ticker": "000338",
-      "name": "潍柴动力",
-      "industry": "汽车",
-      "shares": 1900,
-      "cost_price": 17.2172,
-      "cost_value": 32721.19,
+      "ticker": "600019",
+      "name": "宝钢股份",
+      "industry": "钢铁",
+      "shares": 5100,
+      "cost_price": 7.3073,
+      "cost_value": 37276.92,
       "weight_target": 0.0333,
-      "score": 0.6184
-    },
-    {
-      "ticker": "601336",
-      "name": "新华保险",
-      "industry": "保险",
-      "shares": 400,
-      "cost_price": 69.7697,
-      "cost_value": 27915.14,
-      "weight_target": 0.0333,
-      "score": 0.6675
-    },
-    {
-      "ticker": "601169",
-      "name": "北京银行",
-      "industry": "银行",
-      "shares": 6000,
-      "cost_price": 5.4855,
-      "cost_value": 32921.44,
-      "weight_target": 0.0333,
-      "score": 0.7888
-    },
-    {
-      "ticker": "601728",
-      "name": "中国电信",
-      "industry": "通信",
-      "shares": 5200,
-      "cost_price": 6.3063,
-      "cost_value": 32801.29,
-      "weight_target": 0.0333,
-      "score": 0.6771
+      "score": 0.6543
     },
     {
       "ticker": "600585",
@@ -302,7 +92,218 @@
       "cost_price": 21.8819,
       "cost_value": 32831.32,
       "weight_target": 0.0333,
-      "score": 0.782
+      "score": 0.7235
+    },
+    {
+      "ticker": "601319",
+      "name": "中国人保",
+      "industry": "保险",
+      "shares": 3700,
+      "cost_price": 8.9589,
+      "cost_value": 33156.73,
+      "weight_target": 0.0333,
+      "score": 0.6735
+    },
+    {
+      "ticker": "601211",
+      "name": "国泰君安",
+      "industry": "非银金融",
+      "shares": 1900,
+      "cost_price": 18.9489,
+      "cost_value": 36012.33,
+      "weight_target": 0.0333,
+      "score": 0.7079
+    },
+    {
+      "ticker": "601800",
+      "name": "中国交建",
+      "industry": "建筑",
+      "shares": 4100,
+      "cost_price": 8.1281,
+      "cost_value": 33333.96,
+      "weight_target": 0.0333,
+      "score": 0.8015
+    },
+    {
+      "ticker": "000651",
+      "name": "格力电器",
+      "industry": "家电",
+      "shares": 800,
+      "cost_price": 39.2592,
+      "cost_value": 31415.54,
+      "weight_target": 0.0333,
+      "score": 0.58
+    },
+    {
+      "ticker": "601877",
+      "name": "正泰电器",
+      "industry": "机械",
+      "shares": 1000,
+      "cost_price": 32.6826,
+      "cost_value": 32691.15,
+      "weight_target": 0.0333,
+      "score": 0.5786
+    },
+    {
+      "ticker": "600050",
+      "name": "中国联通",
+      "industry": "通信",
+      "shares": 6500,
+      "cost_price": 5.1151,
+      "cost_value": 33256.86,
+      "weight_target": 0.0333,
+      "score": 0.5987
+    },
+    {
+      "ticker": "600028",
+      "name": "中国石化",
+      "industry": "石油石化",
+      "shares": 6400,
+      "cost_price": 5.3954,
+      "cost_value": 34539.47,
+      "weight_target": 0.0333,
+      "score": 0.5897
+    },
+    {
+      "ticker": "601018",
+      "name": "宁波港",
+      "industry": "交运",
+      "shares": 9400,
+      "cost_price": 3.7037,
+      "cost_value": 34823.83,
+      "weight_target": 0.0333,
+      "score": 0.7437
+    },
+    {
+      "ticker": "601169",
+      "name": "北京银行",
+      "industry": "银行",
+      "shares": 6500,
+      "cost_price": 5.3053,
+      "cost_value": 34493.42,
+      "weight_target": 0.0333,
+      "score": 0.8923
+    },
+    {
+      "ticker": "601229",
+      "name": "上海银行",
+      "industry": "银行",
+      "shares": 3700,
+      "cost_price": 9.3894,
+      "cost_value": 34749.74,
+      "weight_target": 0.0333,
+      "score": 0.8852
+    },
+    {
+      "ticker": "600089",
+      "name": "特变电工",
+      "industry": "电力设备",
+      "shares": 1200,
+      "cost_price": 26.8468,
+      "cost_value": 32224.56,
+      "weight_target": 0.0333,
+      "score": 0.5794
+    },
+    {
+      "ticker": "688187",
+      "name": "时代电气",
+      "industry": "机械",
+      "shares": 700,
+      "cost_price": 48.4684,
+      "cost_value": 33936.72,
+      "weight_target": 0.0333,
+      "score": 0.626
+    },
+    {
+      "ticker": "601601",
+      "name": "中国太保",
+      "industry": "保险",
+      "shares": 900,
+      "cost_price": 37.2672,
+      "cost_value": 33549.23,
+      "weight_target": 0.0333,
+      "score": 0.6272
+    },
+    {
+      "ticker": "002736",
+      "name": "国信证券",
+      "industry": "非银金融",
+      "shares": 3200,
+      "cost_price": 10.7307,
+      "cost_value": 34347.23,
+      "weight_target": 0.0333,
+      "score": 0.6451
+    },
+    {
+      "ticker": "000725",
+      "name": "京东方A",
+      "industry": "电子",
+      "shares": 8500,
+      "cost_price": 4.0841,
+      "cost_value": 34723.71,
+      "weight_target": 0.0333,
+      "score": 0.6261
+    },
+    {
+      "ticker": "601390",
+      "name": "中国中铁",
+      "industry": "建筑",
+      "shares": 6800,
+      "cost_price": 5.0851,
+      "cost_value": 34587.53,
+      "weight_target": 0.0333,
+      "score": 0.7922
+    },
+    {
+      "ticker": "000625",
+      "name": "长安汽车",
+      "industry": "汽车",
+      "shares": 3600,
+      "cost_price": 9.5395,
+      "cost_value": 34351.24,
+      "weight_target": 0.0333,
+      "score": 0.6643
+    },
+    {
+      "ticker": "003816",
+      "name": "中国广核",
+      "industry": "电力",
+      "shares": 7600,
+      "cost_price": 4.5846,
+      "cost_value": 34851.87,
+      "weight_target": 0.0333,
+      "score": 0.6344
+    },
+    {
+      "ticker": "600999",
+      "name": "招商证券",
+      "industry": "非银金融",
+      "shares": 2200,
+      "cost_price": 15.7357,
+      "cost_value": 34627.58,
+      "weight_target": 0.0333,
+      "score": 0.6358
+    },
+    {
+      "ticker": "600015",
+      "name": "华夏银行",
+      "industry": "银行",
+      "shares": 5000,
+      "cost_price": 6.8969,
+      "cost_value": 34493.42,
+      "weight_target": 0.0333,
+      "score": 0.9069
+    },
+    {
+      "ticker": "601006",
+      "name": "大秦铁路",
+      "industry": "交运",
+      "shares": 6600,
+      "cost_price": 5.2753,
+      "cost_value": 34825.83,
+      "weight_target": 0.0333,
+      "score": 0.719
     }
-  ]
+  ],
+  "cash": 7800.97
 }
