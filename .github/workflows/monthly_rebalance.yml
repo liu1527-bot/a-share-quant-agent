@@ -1,0 +1,103 @@
+name: 月度自动调仓
+
+on:
+  schedule:
+    # 每月 1 日 01:00 UTC = 09:00 北京时间
+    - cron: '0 1 1 * *'
+  # 也支持手动触发(测试用)
+  workflow_dispatch:
+
+# 给 GITHUB_TOKEN 提交权限
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  rebalance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60   # akshare 数据拉取可能较慢
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: 设置 Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 测试网络可达性 (诊断)
+        run: |
+          python -c "
+          import requests
+          urls = [
+              'https://web.ifzq.gtimg.cn',
+              'http://70.push2.eastmoney.com',
+              'https://qt.gtimg.cn',
+          ]
+          for u in urls:
+              try:
+                  r = requests.get(u, timeout=10)
+                  print(f'[OK] {u}: {r.status_code}')
+              except Exception as e:
+                  print(f'[FAIL] {u}: {str(e)[:80]}')
+          "
+
+      - name: 跑月度调仓
+        env:
+          PYTHONIOENCODING: utf-8
+          MPLBACKEND: Agg   # matplotlib 无 GUI 模式
+        run: |
+          python scripts/monthly_run.py
+
+      - name: 上传 Artifacts (报告)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: monthly-report-${{ github.run_number }}
+          path: |
+            reports/
+          retention-days: 90
+
+      - name: 提交报告到仓库
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # 只提交 reports 目录(代码不动)
+          git add reports/
+          if git diff --staged --quiet; then
+            echo "[SKIP] 没有新报告变化"
+          else
+            git commit -m "📊 月度调仓报告 $(date -u +%Y-%m)"
+            git push
+            echo "[OK] 报告已提交到 main 分支"
+          fi
+
+      - name: 创建 Issue 通知
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'reports/latest/README.md';
+            let body = '本月调仓已完成,详见 [reports/latest/](../tree/main/reports/latest/)';
+            if (fs.existsSync(path)) {
+              body = fs.readFileSync(path, 'utf-8');
+            }
+            const today = new Date().toISOString().split('T')[0];
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `📈 月度调仓 ${today}`,
+              body: body,
+              labels: ['rebalance', 'auto']
+            });
