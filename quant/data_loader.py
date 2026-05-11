@@ -64,16 +64,25 @@ def get_index_constituents(index_code: str = '000300') -> pd.DataFrame:
         if age < 86400 * 7:  # 成分股调整频率低,缓存 7 天
             return pd.read_parquet(cache_file)
 
-    print(f"[数据] 拉取指数 {index_code} 成分股...")
+    print(f"[数据] 拉取指数 {index_code} 成分股 (新浪接口)...")
     ak = _ak()
-    df = ak.index_stock_cons(symbol=index_code)
-    df.columns = ['code', 'name', 'date']
-    # akshare index_stock_cons 偶尔返回重复成分股(同一只被剔除又加入会留两条)
-    # 在源头去重,避免下游 join 笛卡尔积
+    # 优先用新浪 index_stock_cons_sina:返回真实当前成分股快照(300/500/800 只完整,无历史污染)
+    # 旧接口 index_stock_cons 会混入历史调入调出记录,导致重复
+    try:
+        raw = ak.index_stock_cons_sina(symbol=index_code)
+        # 列名: symbol, code, name, trade, ...  我们只取 code/name
+        df = raw[['code', 'name']].copy()
+        df['date'] = pd.NaT  # 占位,保持下游兼容
+    except Exception as e:
+        print(f"[数据] 新浪接口失败({e}),回退到 index_stock_cons (含历史污染)...")
+        df = ak.index_stock_cons(symbol=index_code)
+        df.columns = ['code', 'name', 'date']
+    # 双保险去重
     before = len(df)
     df = df.drop_duplicates(subset=['code'], keep='first').reset_index(drop=True)
     if before != len(df):
         print(f"[数据] 指数 {index_code} 去重: {before} -> {len(df)} 只")
+    print(f"[数据] 指数 {index_code} 成分股: {len(df)} 只")
     df.to_parquet(cache_file, index=False)
     return df
 
