@@ -1,0 +1,47 @@
+# 数据缓存(太大,Actions 跑时重新拉)
+data/cache/
+*.parquet
+*.pkl
+
+# 临时日志
+*.log
+warmup_fund.log
+oos_out.log
+test_output.txt
+test_*.txt
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+.coverage
+
+# 虚拟环境
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 历史报告(保留最近的可考虑提交,旧的不要)
+# reports/  # 这个不忽略,我们要把每月新报告 push 上去
+
+# 与本项目无关的工作笔记
+亚马逊选品每日工作流.md
+*.bak
+
+# 历史调试报告(只保留最新一份作为示例)
+reports/20260511_152641/
+reports/20260511_155348/
+
