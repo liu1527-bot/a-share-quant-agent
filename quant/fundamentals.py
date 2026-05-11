@@ -107,9 +107,17 @@ def add_publish_lag(quarterly_data: pd.DataFrame,
 
 
 # ========== 4. 拉取批量数据并构建因子面板 ==========
-def build_fundamentals_panel(refresh: bool = False) -> dict:
+def build_fundamentals_panel(refresh: bool = False,
+                              baidu_period: str = '近五年',
+                              sina_start_year: str = '2020',
+                              cache_suffix: str = '') -> dict:
     """
     构建基本面因子面板。
+
+    参数:
+      baidu_period:    '近五年' (日频) 或 '全部' (~半月频, 但有 2001 起的长历史)
+      sina_start_year: 新浪财务起始年份 (默认 '2020')
+      cache_suffix:    缓存文件名后缀 (用于 OOS 测试隔离, 如 '_oos2018')
 
     返回:
       {
@@ -118,7 +126,7 @@ def build_fundamentals_panel(refresh: bool = False) -> dict:
         'quality_roe': DataFrame(date × stock),
       }
     """
-    cache_file = config.CACHE_DIR / f"fundamentals_panel_{config.STOCK_POOL}.pkl"
+    cache_file = config.CACHE_DIR / f"fundamentals_panel_{config.STOCK_POOL}{cache_suffix}.pkl"
     if not refresh and cache_file.exists():
         age = time.time() - cache_file.stat().st_mtime
         if age < 86400 * 7:  # 7天有效
@@ -128,27 +136,28 @@ def build_fundamentals_panel(refresh: bool = False) -> dict:
     from .data_loader import get_stock_pool
     pool = get_stock_pool()
     codes = pool['code'].tolist()
-    print(f"[基本面] 拉取 {len(codes)} 只股票的 PE/PB/ROE...")
+    print(f"[基本面] 拉取 {len(codes)} 只股票的 PE/PB/ROE "
+          f"(period={baidu_period}, sina_start={sina_start_year})...")
 
     pe_dict, pb_dict, roe_dict = {}, {}, {}
 
     t0 = time.time()
     for i, code in enumerate(codes, 1):
         # PE
-        pe_df = get_baidu_valuation(code, '市盈率(TTM)', '近五年')
+        pe_df = get_baidu_valuation(code, '市盈率(TTM)', baidu_period)
         if not pe_df.empty:
             # 1/PE,过滤负值(亏损股)
             pe_inv = 1.0 / pe_df['value'].where(pe_df['value'] > 0)
             pe_dict[code] = pe_inv
 
         # PB
-        pb_df = get_baidu_valuation(code, '市净率', '近五年')
+        pb_df = get_baidu_valuation(code, '市净率', baidu_period)
         if not pb_df.empty:
             pb_inv = 1.0 / pb_df['value'].where(pb_df['value'] > 0)
             pb_dict[code] = pb_inv
 
         # ROE (季频 → 加 publish lag → 后面 ffill 对齐)
-        fin_df = get_sina_financial(code)
+        fin_df = get_sina_financial(code, start_year=sina_start_year)
         if not fin_df.empty and '净资产收益率(%)' in fin_df.columns:
             roe = fin_df['净资产收益率(%)'].dropna()
             roe = add_publish_lag(roe.to_frame())['净资产收益率(%)']
@@ -190,8 +199,18 @@ def align_to_daily(quarterly_panel: pd.DataFrame,
     """
     把季频/不规则的财务面板对齐到日频。
     用 forward-fill: 直到下一次更新前都用最新已知值。
+
+    注意: pandas DataFrame.reindex(method='ffill') 在原 index 与新 index
+    跨度差异大或 dtype 不一致时,有时只保留稀疏点不做 fill (实测 bug)。
+    所以改成 union → ffill → reindex 的两步法,确保所有日历日都能取到值。
     """
-    aligned = quarterly_panel.reindex(daily_index, method='ffill')
+    if quarterly_panel.empty:
+        return pd.DataFrame(index=daily_index)
+    # 1) 合并 index 后做 ffill
+    combined_idx = quarterly_panel.index.union(daily_index).sort_values()
+    filled = quarterly_panel.reindex(combined_idx).ffill()
+    # 2) 切到目标日历
+    aligned = filled.reindex(daily_index)
     return aligned
 
 
