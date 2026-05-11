@@ -96,17 +96,48 @@ def filter_stocks(snapshot: pd.DataFrame,
 
 
 # ========== 5. 单期选股 ==========
+def _apply_industry_neutral(score: pd.Series,
+                            top_n: int,
+                            max_per_industry: int) -> pd.Series:
+    """
+    行业中性贪心选股: 按 score 降序遍历,每只股票若所属行业未达上限就选入。
+    
+    入参 score: 已按降序排好的 Series (index=ticker, value=综合得分)
+    返回: 截取后的 Series, 长度 ≤ top_n
+    
+    Note: 若行业限制太严导致无法凑齐 top_n, 会返回少于 top_n 只。
+    """
+    from quant.industry_map import get_industry
+    selected = []
+    industry_counts = {}
+    for ticker, sc in score.items():
+        ind = get_industry(ticker)
+        if industry_counts.get(ind, 0) >= max_per_industry:
+            continue  # 该行业已满, 跳过
+        selected.append(ticker)
+        industry_counts[ind] = industry_counts.get(ind, 0) + 1
+        if len(selected) >= top_n:
+            break
+    return score.loc[selected]
+
+
 def select_top_n(panel: dict,
                  date: str,
                  top_n: int = None,
-                 weights: dict = None) -> pd.DataFrame:
+                 weights: dict = None,
+                 max_per_industry: int = None) -> pd.DataFrame:
     """
     在指定日期选 Top N 股票。
 
+    Args:
+        max_per_industry: 单一行业最多多少只 (None=不限制, 默认读 config.MAX_PER_INDUSTRY)
+
     返回:
-      DataFrame(index=股票代码, columns=[score, rank, ...各因子原始值])
+      DataFrame(index=股票代码, columns=[score, rank, industry, ...各因子原始值])
     """
     top_n = top_n or config.TOP_N
+    if max_per_industry is None:
+        max_per_industry = getattr(config, 'MAX_PER_INDUSTRY', None)
     date = pd.to_datetime(date)
 
     # 1. 取该日的横截面快照(用每个因子≤date的最近一个值)
@@ -127,11 +158,18 @@ def select_top_n(panel: dict,
     normalized = normalize_cross_section(cleaned)
 
     # 4. 综合打分
-    score = composite_score(normalized, weights)
+    score = composite_score(normalized, weights)  # 已按降序
 
-    # 5. 选 Top N
-    top = score.head(top_n)
+    # 5. 选 Top N (可选行业中性)
+    if max_per_industry is not None and max_per_industry > 0:
+        top = _apply_industry_neutral(score, top_n, max_per_industry)
+    else:
+        top = score.head(top_n)
+
     result = pd.DataFrame({'score': top, 'rank': range(1, len(top) + 1)})
+    # 附上行业标签
+    from quant.industry_map import get_industry
+    result['industry'] = [get_industry(t) for t in top.index]
     # 附上原始因子值,便于解释
     result = result.join(raw_snap.loc[top.index].round(4))
     return result
