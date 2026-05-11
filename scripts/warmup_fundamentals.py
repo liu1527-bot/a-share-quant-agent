@@ -17,7 +17,8 @@ warnings.filterwarnings('ignore')
 
 from quant.fundamentals import build_fundamentals_panel
 
-if __name__ == "__main__":
+
+def main():
     panel = build_fundamentals_panel(refresh=False)
     print("\n[完成] 基本面面板覆盖率:")
     for name, df in panel.items():
@@ -25,3 +26,8 @@ if __name__ == "__main__":
             print(f"  {name}: 空")
         else:
             print(f"  {name}: {df.shape[0]} 期 x {df.shape[1]} 股")
+    return panel
+
+
+if __name__ == "__main__":
+    main()
