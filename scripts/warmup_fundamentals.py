@@ -3,9 +3,13 @@
 Usage:
   python scripts/warmup_fundamentals.py
 """
-import sys, os, io
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+import sys, os
 sys.path.insert(0, '.')
+
+# 仅当 stdout 不是 utf-8 时才重新包装(避免被 monthly_run 调用时关闭已 wrap 的流)
+if hasattr(sys.stdout, 'buffer') and getattr(sys.stdout, 'encoding', '').lower() != 'utf-8':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 
 # 必须先清掉系统代理
 for k in ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']:
