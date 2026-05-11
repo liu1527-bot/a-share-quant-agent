@@ -35,6 +35,10 @@ REBALANCE_FREQ = 'ME'
 # 每期持仓数量
 TOP_N = 30
 
+# 行业中性约束: 单一行业最多 N 只 (None 或 0 = 不限制)
+# 推荐 3-5: 30只 / 3每行业 = 至少 10 个行业, 最大行业暴露 ≤ 10%
+MAX_PER_INDUSTRY = 3
+
 # 回测时间范围
 BACKTEST_START = '2021-01-01'
 BACKTEST_END = '2025-12-31'
