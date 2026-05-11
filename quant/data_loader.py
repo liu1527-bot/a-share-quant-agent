@@ -68,6 +68,12 @@ def get_index_constituents(index_code: str = '000300') -> pd.DataFrame:
     ak = _ak()
     df = ak.index_stock_cons(symbol=index_code)
     df.columns = ['code', 'name', 'date']
+    # akshare index_stock_cons 偶尔返回重复成分股(同一只被剔除又加入会留两条)
+    # 在源头去重,避免下游 join 笛卡尔积
+    before = len(df)
+    df = df.drop_duplicates(subset=['code'], keep='first').reset_index(drop=True)
+    if before != len(df):
+        print(f"[数据] 指数 {index_code} 去重: {before} -> {len(df)} 只")
     df.to_parquet(cache_file, index=False)
     return df
 
@@ -76,11 +82,16 @@ def get_stock_pool() -> pd.DataFrame:
     """根据 config.STOCK_POOL 返回当前选股范围。"""
     pool = config.STOCK_POOL
     if pool == 'all':
-        return get_stock_list()
-    mapping = {'hs300': '000300', 'zz500': '000905', 'zz800': '000906'}
-    if pool in mapping:
-        return get_index_constituents(mapping[pool])
-    raise ValueError(f"未知股票池: {pool}")
+        df = get_stock_list()
+    else:
+        mapping = {'hs300': '000300', 'zz500': '000905', 'zz800': '000906'}
+        if pool not in mapping:
+            raise ValueError(f"未知股票池: {pool}")
+        df = get_index_constituents(mapping[pool])
+    # 双保险: 防止旧缓存里还有重复
+    if df['code'].duplicated().any():
+        df = df.drop_duplicates(subset=['code'], keep='first').reset_index(drop=True)
+    return df
 
 
 # ========== 3. 个股历史K线 ==========
