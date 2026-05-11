@@ -95,6 +95,79 @@ def filter_stocks(snapshot: pd.DataFrame,
     return snapshot[valid_count >= min_factors]
 
 
+# ========== 4b. V5 风控硬过滤 ==========
+def apply_risk_filters(candidates: pd.Index,
+                        date: pd.Timestamp,
+                        risk_panel: dict,
+                        low_vol_snapshot: pd.Series,
+                        liquidity_pct: float = 0.20,
+                        volatility_pct: float = 0.10,
+                        roe_drop_threshold: float = -50.0) -> pd.Index:
+    """
+    V5 三层风控硬过滤:
+      1. 流动性: 60日均成交额最低 liquidity_pct 比例剔除 (避免冷门股打不进货)
+      2. 波动率: 60日波动率最高 volatility_pct 比例剔除 (low_vol_60 越小波动越高)
+      3. 暴雷: ROE 同比变化 < roe_drop_threshold (单位百分点) 直接剔除
+
+    Args:
+        candidates: 候选股票 ticker (Index)
+        date: 选股日 (Timestamp)
+        risk_panel: {'liquidity_amount_60': df, 'roe_yoy': df}
+        low_vol_snapshot: 当日的 low_vol_60 因子值 (越小波动越高)
+        liquidity_pct: 流动性最低多少剔除 (默认 20%)
+        volatility_pct: 波动率最高多少剔除 (默认 10%)
+        roe_drop_threshold: ROE 同比下滑超过多少剔除 (默认 -50, 即 -50 个百分点)
+
+    Returns:
+        过滤后的 Index
+    """
+    keep = set(candidates)
+    logs = {}
+
+    # 取当日数据 (用 ≤date 的最近一日)
+    def _get_snap(panel_key):
+        df = risk_panel.get(panel_key)
+        if df is None: return None
+        valid = df.index[df.index <= date]
+        if len(valid) == 0: return None
+        return df.loc[valid[-1]]
+
+    # ---- 过滤 1: 流动性 ----
+    liq = _get_snap('liquidity_amount_60')
+    if liq is not None:
+        liq_in = liq.loc[liq.index.intersection(candidates)].dropna()
+        if len(liq_in) > 0:
+            threshold = liq_in.quantile(liquidity_pct)
+            removed = set(liq_in[liq_in < threshold].index)
+            keep -= removed
+            logs['liquidity'] = len(removed)
+
+    # ---- 过滤 2: 波动率 (low_vol_60 越小波动越大) ----
+    if low_vol_snapshot is not None:
+        lv_in = low_vol_snapshot.loc[low_vol_snapshot.index.intersection(candidates)].dropna()
+        if len(lv_in) > 0:
+            # low_vol_60 是 -volatility, 越小代表波动越大, 剔除最小 volatility_pct
+            threshold = lv_in.quantile(volatility_pct)
+            removed = set(lv_in[lv_in < threshold].index)
+            keep -= removed
+            logs['high_vol'] = len(removed)
+
+    # ---- 过滤 3: ROE 暴雷 ----
+    roe_y = _get_snap('roe_yoy')
+    if roe_y is not None:
+        roe_in = roe_y.loc[roe_y.index.intersection(candidates)].dropna()
+        removed = set(roe_in[roe_in < roe_drop_threshold].index)
+        keep -= removed
+        logs['roe_crash'] = len(removed)
+
+    # 选股日抽样打印一次 (Mar/Jun/Sep/Dec 月份)
+    if date.month in (3, 6, 9, 12) and date.day < 5:
+        log_str = ', '.join(f'{k}={v}' for k,v in logs.items())
+        print(f'  [V5 风控] {date.date()}: 候选 {len(candidates)} -> 保留 {len(keep)} ({log_str})')
+
+    return pd.Index(sorted(keep))
+
+
 # ========== 5. 单期选股 ==========
 def _apply_industry_neutral(score: pd.Series,
                             top_n: int,
@@ -125,12 +198,14 @@ def select_top_n(panel: dict,
                  date: str,
                  top_n: int = None,
                  weights: dict = None,
-                 max_per_industry: int = None) -> pd.DataFrame:
+                 max_per_industry: int = None,
+                 risk_panel: dict = None) -> pd.DataFrame:
     """
     在指定日期选 Top N 股票。
 
     Args:
         max_per_industry: 单一行业最多多少只 (None=不限制, 默认读 config.MAX_PER_INDUSTRY)
+        risk_panel: V5 风控数据 {'liquidity_amount_60', 'roe_yoy'}, None 则不过滤
 
     返回:
       DataFrame(index=股票代码, columns=[score, rank, industry, ...各因子原始值])
@@ -149,10 +224,18 @@ def select_top_n(panel: dict,
         snap[name] = df.loc[valid_dates[-1]]
     raw_snap = pd.DataFrame(snap)
 
-    # 2. 过滤
+    # 2. 过滤(因子缺失)
     cleaned = filter_stocks(raw_snap)
     if cleaned.empty:
         return pd.DataFrame()
+
+    # 2b. V5 风控硬过滤
+    if risk_panel is not None:
+        low_vol_snap = snap.get('low_vol_60')
+        kept = apply_risk_filters(cleaned.index, date, risk_panel, low_vol_snap)
+        cleaned = cleaned.loc[kept]
+        if cleaned.empty:
+            return pd.DataFrame()
 
     # 3. 标准化
     normalized = normalize_cross_section(cleaned)
@@ -179,9 +262,13 @@ def select_top_n(panel: dict,
 def generate_holdings(panel: dict,
                       start_date: str = None,
                       end_date: str = None,
-                      top_n: int = None) -> dict:
+                      top_n: int = None,
+                      risk_panel: dict = None) -> dict:
     """
     在所有调仓日生成选股结果。
+
+    Args:
+        risk_panel: V5 风控数据, None 则不过滤 (V4 行为)
 
     返回:
       {调仓日(Timestamp): DataFrame(选股结果)}
@@ -196,12 +283,13 @@ def generate_holdings(panel: dict,
 
     # 生成调仓日
     rebal_dates = get_rebalance_dates(all_dates)
+    risk_tag = ' + V5 风控' if risk_panel else ''
     print(f"[策略] 调仓日数量: {len(rebal_dates)}, "
-          f"频率={config.REBALANCE_FREQ}, Top={top_n or config.TOP_N}")
+          f"频率={config.REBALANCE_FREQ}, Top={top_n or config.TOP_N}{risk_tag}")
 
     holdings = {}
     for d in rebal_dates:
-        sel = select_top_n(panel, d, top_n=top_n)
+        sel = select_top_n(panel, d, top_n=top_n, risk_panel=risk_panel)
         if not sel.empty:
             holdings[d] = sel
 
