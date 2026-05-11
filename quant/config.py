@@ -62,6 +62,13 @@ FACTOR_WEIGHTS = {
     'momentum_120_5':     0.10,   # 少量保留做平衡
     # 已删除: momentum_60(与120_5重复), quality_roe(样本不足),
     #         amount_ratio_5_20(无效), ma_pos_20(无效)
+    # ============ V5 实验记录 (已回退) ============
+    # V5 试过启用 momentum_60=0.20 + reversal_5 降到 0.10, 实测失败:
+    #   - W4 (924反转期) IR -0.25 → -0.28, 没救活
+    #   - W5 (放量后) IR +0.68 → -0.88, 反而崩盘
+    #   - 跨窗口 IR 均值 1.23 → 0.82, std 1.17 → 1.38
+    # 结论: hs300 内部 momentum_60 是已知负 IC, 不能正向使用
+    # 详见 reports/walk_forward/v4_vs_v5.csv
 }
 
 # 标准化方式: 'rank' 百分位排名(稳健) / 'zscore' z分数(对正态分布因子更敏感)
