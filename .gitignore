@@ -45,3 +45,6 @@ Thumbs.db
 reports/20260511_152641/
 reports/20260511_155348/
 
+
+# 一次性 API 工具脚本(本地用,不入仓库)
+sync_from_github.py
