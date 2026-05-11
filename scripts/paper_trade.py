@@ -155,8 +155,9 @@ def cmd_init(rebal_date='2025-12-31'):
                           weight_each, fill_px, float(row['score']),
                           f'initial; fee={fee:.2f}')
 
-    save_positions(positions)
     actual_invested = sum(h['cost_value'] for h in positions['holdings'])
+    positions['cash'] = round(INITIAL_CAPITAL - actual_invested, 2)
+    save_positions(positions)
     print(f'\n[init] 持仓创建完成')
     print(f'  目标资金: RMB {INITIAL_CAPITAL:,}')
     print(f'  实际现金支出: RMB {actual_invested:,.0f} ({actual_invested/INITIAL_CAPITAL*100:.1f}%)')
@@ -296,10 +297,15 @@ def cmd_rebalance(rebal_date):
 
     print(f'\n[rebalance] 摩擦成本: 卖费 {total_sell_fees:.0f} + 买费 {total_buy_fees:.0f} = {total_sell_fees+total_buy_fees:.0f} ({(total_sell_fees+total_buy_fees)/INITIAL_CAPITAL*10000:.1f} bp)')
 
+    # 真实现金 = 上次现金 + 卖出回笼 - 买入支出
+    cash_used_buy = sum(h['cost_value'] for h in new_holdings if h['ticker'] in to_buy)
+    new_cash = (float(last_nav['cash']) if last_nav is not None else 0) + cash_freed - cash_used_buy
     positions['holdings'] = new_holdings
     positions['last_rebalance'] = str(rebal_date.date())
     positions['top_n'] = len(new_holdings)
+    positions['cash'] = round(new_cash, 2)  # 跟踪真实现金
     save_positions(positions)
+    print(f'[rebalance] 现金: 上次 {float(last_nav["cash"]):,.0f} + 卖出 {cash_freed:,.0f} - 买入 {cash_used_buy:,.0f} = {new_cash:,.0f}')
 
     # snapshot
     snap = pd.DataFrame(new_holdings)
@@ -329,27 +335,38 @@ def cmd_update_nav(asof_date):
             missing.append(h['ticker']); continue
         total_market_value += h['shares'] * px
 
-    # 现金 = 上一期现金 (paper 不分红, 不交易就不变)
+    # 现金 = positions 里跟踪的真实现金 (rebalance 后会更新)
     last_row = nav.iloc[-1] if nav is not None and len(nav) > 0 else None
-    cash = float(last_row['cash']) if last_row is not None else 0.0
+    cash = float(positions.get('cash', last_row['cash'] if last_row is not None else 0.0))
     portfolio_value = total_market_value + cash
     new_nav = portfolio_value / INITIAL_CAPITAL
 
-    # benchmark: HS300 指数 (用 sh000300 / 或 akshare index_zh_a_hist)
+    # benchmark: HS300 指数 (用腾讯接口, 把指数当股票拉)
     bench_nav = float(last_row['benchmark_nav']) if last_row is not None else 1.0
     try:
-        # 取自 inception 起的 HS300 close
-        import akshare as ak
-        idx = ak.index_zh_a_hist(symbol='000300', period='daily',
-                                 start_date='20251201',
-                                 end_date=asof.strftime('%Y%m%d'))
-        idx['日期'] = pd.to_datetime(idx['日期'])
+        import akshare as ak, time
+        idx = None
+        for attempt in range(3):
+            try:
+                idx = ak.stock_zh_a_hist_tx(
+                    symbol='sh000300',
+                    start_date='20251201',
+                    end_date=asof.strftime('%Y%m%d'),
+                    adjust='',
+                )
+                if idx is not None and len(idx) > 0:
+                    break
+            except Exception:
+                time.sleep(1)
+        if idx is None or len(idx) == 0:
+            raise Exception('腾讯指数接口返回空')
+        idx['date'] = pd.to_datetime(idx['date'])
         inception = pd.Timestamp(positions['inception_date'])
-        idx_start = idx[idx['日期'] <= inception]
-        idx_now = idx[idx['日期'] <= asof]
+        idx_start = idx[idx['date'] <= inception]
+        idx_now = idx[idx['date'] <= asof]
         if len(idx_start) > 0 and len(idx_now) > 0:
-            p0 = float(idx_start.iloc[-1]['收盘'])
-            p1 = float(idx_now.iloc[-1]['收盘'])
+            p0 = float(idx_start.iloc[-1]['close'])
+            p1 = float(idx_now.iloc[-1]['close'])
             bench_nav = p1 / p0
     except Exception as ex:
         print(f'  [WARN] benchmark 取数失败, 用前值: {ex}')
