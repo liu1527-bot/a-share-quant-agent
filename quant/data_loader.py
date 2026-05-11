@@ -64,24 +64,18 @@ def get_index_constituents(index_code: str = '000300') -> pd.DataFrame:
         if age < 86400 * 7:  # 成分股调整频率低,缓存 7 天
             return pd.read_parquet(cache_file)
 
-    print(f"[数据] 拉取指数 {index_code} 成分股 (新浪接口)...")
+    print(f"[数据] 拉取指数 {index_code} 成分股...")
     ak = _ak()
-    # 优先用新浪 index_stock_cons_sina:返回真实当前成分股快照(300/500/800 只完整,无历史污染)
-    # 旧接口 index_stock_cons 会混入历史调入调出记录,导致重复
-    try:
-        raw = ak.index_stock_cons_sina(symbol=index_code)
-        # 列名: symbol, code, name, trade, ...  我们只取 code/name
-        df = raw[['code', 'name']].copy()
-        df['date'] = pd.NaT  # 占位,保持下游兼容
-    except Exception as e:
-        print(f"[数据] 新浪接口失败({e}),回退到 index_stock_cons (含历史污染)...")
-        df = ak.index_stock_cons(symbol=index_code)
-        df.columns = ['code', 'name', 'date']
-    # 双保险去重
+    # 用 ak.index_stock_cons (来自中证指数 / akshare 主接口):
+    #   返回当前 300 只成分股 + 各自纳入日期
+    # 该接口有翻页 bug,会把约 20 只股票输出两次,但 dedup 后即为正确的 300 只快照
+    # 注: ak.index_stock_cons_sina 是新浪旧版页面,2025-06 后未更新,缺少最新调入股
+    df = ak.index_stock_cons(symbol=index_code)
+    df.columns = ['code', 'name', 'date']
     before = len(df)
     df = df.drop_duplicates(subset=['code'], keep='first').reset_index(drop=True)
     if before != len(df):
-        print(f"[数据] 指数 {index_code} 去重: {before} -> {len(df)} 只")
+        print(f"[数据] 指数 {index_code} 翻页 bug 去重: {before} -> {len(df)} 只")
     print(f"[数据] 指数 {index_code} 成分股: {len(df)} 只")
     df.to_parquet(cache_file, index=False)
     return df
