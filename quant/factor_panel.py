@@ -19,7 +19,7 @@ from .data_loader import get_stock_pool, get_stock_kline
 from .factors import compute_all_factors, FACTOR_REGISTRY
 
 
-def _merge_fundamentals(panel: dict) -> dict:
+def _merge_fundamentals(panel: dict, cache_suffix: str = '') -> dict:
     """
     把基本面因子(PE/PB/ROE)合并进面板。
     需要先跑过 scripts/warmup_fundamentals.py。
@@ -32,7 +32,7 @@ def _merge_fundamentals(panel: dict) -> dict:
         print("[基本面] 未找到 fundamentals 模块, 跳过")
         return panel
 
-    fund_cache = config.CACHE_DIR / f"fundamentals_panel_{config.STOCK_POOL}.pkl"
+    fund_cache = config.CACHE_DIR / f"fundamentals_panel_{config.STOCK_POOL}{cache_suffix}.pkl"
     if not fund_cache.exists():
         print(f"[基本面] 缓存不存在 ({fund_cache.name}),"
               " 请先运行 python scripts/warmup_fundamentals.py")
@@ -63,7 +63,7 @@ def _merge_fundamentals(panel: dict) -> dict:
     return panel
 
 
-def build_factor_panel(refresh: bool = False) -> dict:
+def build_factor_panel(refresh: bool = False, cache_suffix: str = '') -> dict:
     """
     构建全股票池的因子面板。
 
@@ -74,7 +74,7 @@ def build_factor_panel(refresh: bool = False) -> dict:
           ...
         }
     """
-    cache_file = config.CACHE_DIR / f"factor_panel_{config.STOCK_POOL}.pkl"
+    cache_file = config.CACHE_DIR / f"factor_panel_{config.STOCK_POOL}{cache_suffix}.pkl"
     if not refresh and cache_file.exists():
         age = time.time() - cache_file.stat().st_mtime
         if age < 86400:  # 1天有效
@@ -109,7 +109,7 @@ def build_factor_panel(refresh: bool = False) -> dict:
         panel[factor_name] = factor_df
 
     # 合并基本面因子(PE/PB/ROE)
-    panel = _merge_fundamentals(panel)
+    panel = _merge_fundamentals(panel, cache_suffix=cache_suffix)
 
     # 保存
     pd.to_pickle(panel, cache_file)

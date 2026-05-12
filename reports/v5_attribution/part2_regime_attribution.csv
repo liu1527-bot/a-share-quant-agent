@@ -1,0 +1,5 @@
+﻿regime,months,v5_avg_pct,hs300_avg_pct,alpha_avg_pct,win_rate_pct,alpha_total_pct
+A_Bull (>+5%),7,7.56,10.78,-3.22,14.3,-22.55
+B_Rebound (0~+5%),22,2.29,1.77,0.52,63.6,11.5
+C_Sideways (-3%~0),17,1.62,-1.3,2.92,94.1,49.6
+D_Bear (<-3%),17,-3.51,-5.59,2.08,82.4,35.34

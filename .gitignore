@@ -1,5 +1,6 @@
 # 数据缓存(太大,Actions 跑时重新拉)
-data/cache/
+# 注意: 整个 data/ 不入库 — 包含 cache (太大) 和 paper (私密交易状态)
+data/
 *.parquet
 *.pkl
 
@@ -48,3 +49,10 @@ reports/20260511_155348/
 
 # 一次性 API 工具脚本(本地用,不入仓库)
 sync_from_github.py
+
+# 调试报告(临时,不入库)
+reports/20260511_194711/
+reports/20260511_200710/
+reports/20260511_202758/
+reports/20260511_215502/
+reports/20260511_215535/
